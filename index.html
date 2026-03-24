@@ -250,6 +250,10 @@
           <input type="number" id="topGoal" min="0" step="1000" value="100000" />
         </div>
         <div class="field">
+          <label for="topHours">Top tier weekly hours</label>
+          <input type="number" id="topHours" min="1" step="0.5" value="40" />
+        </div>
+        <div class="field">
           <label for="weeksPerYear">Weeks per year for annual goal <span class="info-icon" aria-label="Default to 50 for two weeks vacation" title="Default to 50 weeks to allow 2 weeks vacation">i</span></label>
           <input type="number" id="weeksPerYear" min="1" max="52" step="1" value="50" />
           <p class="input-note">50 weeks allows for two weeks of vacation; adjust if policies differ.</p>
@@ -332,9 +336,10 @@
     const inputs = {
       wageShare: document.getElementById("wageShare"),
       topGoal: document.getElementById("topGoal"),
-      levels: document.getElementById("levelCount"),
+      levelCount: document.getElementById("levelCount"),
       curve: document.getElementById("curveExponent"),
       weeksPerYear: document.getElementById("weeksPerYear"),
+      topHours: document.getElementById("topHours"),
     };
 
     const outputs = {
@@ -349,7 +354,10 @@
     const DEFAULT_RETAIL_BASE = 15;
     const DEFAULT_RETAIL_TOP = 20;
     const retailPercents = {};
-    const levelSpecs = {};
+    const baseSpec = {
+      hours: 35,
+      hourly: 17,
+    };
 
     const defaultRetailPercent = (index, levelCount) => {
       if (levelCount <= 1) {
@@ -367,28 +375,6 @@
       });
     };
 
-    const cleanLevelSpecs = (levelCount) => {
-      Object.keys(levelSpecs).forEach((key) => {
-        if (Number(key) >= levelCount) {
-          delete levelSpecs[key];
-        }
-      });
-    };
-
-    const defaultLevelSpec = (index) => {
-      return {
-        hours: 35,
-        hourly: 17 + index,
-      };
-    };
-
-    const setLevelSpec = (index, key, value) => {
-      if (!levelSpecs[index]) {
-        levelSpecs[index] = {};
-      }
-      levelSpecs[index][key] = value;
-    };
-
     const formatCurrency = (value) => {
       return new Intl.NumberFormat("en-US", {
         style: "currency",
@@ -398,39 +384,38 @@
     };
 
     const clamp = (value, min, max) => Math.min(Math.max(value, min), max);
+    const clampHours = (value) => Math.max(0, value);
 
     const render = () => {
       const share = clamp(parseFloat(inputs.wageShare.value) || 40, 1, 100);
       const annualTop = Math.max(0, parseFloat(inputs.topGoal.value) || 0);
       const weeksPerYear = clamp(parseFloat(inputs.weeksPerYear.value) || 50, 1, 52);
-      const levels = Math.max(2, parseInt(inputs.levels.value, 10) || 2);
+      const levels = Math.max(2, parseInt(inputs.levelCount.value, 10) || 2);
       const curve = clamp(parseFloat(inputs.curve.value) || 1.25, 0.4, 3);
+      const topHours = clampHours(parseFloat(inputs.topHours.value) || 40);
       cleanRetailPercents(levels);
-      cleanLevelSpecs(levels);
 
       outputs.curveValue.textContent = curve.toFixed(2);
 
       const conversion = share > 0 ? 100 / share : 0;
-      const levelOne = levelSpecs[0] ?? defaultLevelSpec(0);
-      const baseGuarantee = levelOne.hours * levelOne.hourly;
+      const baseGuarantee = baseSpec.hours * baseSpec.hourly;
       const baseWeekly = baseGuarantee * conversion;
-      const topWeekly = (annualTop / weeksPerYear) * conversion;
+      const topGuarantee = annualTop / weeksPerYear;
+      const topWeekly = topGuarantee * conversion;
 
       outputs.baseWeekly.textContent = baseWeekly ? formatCurrency(baseWeekly) : "—";
       outputs.topWeekly.textContent = topWeekly ? formatCurrency(topWeekly) : "—";
-      outputs.gapWeekly.textContent = topWeekly && baseWeekly ? formatCurrency(Math.max(0, topWeekly - baseWeekly)) : "—";
+      outputs.gapWeekly.textContent = topWeekly && baseWeekly ?
+        formatCurrency(Math.max(0, topWeekly - baseWeekly)) : "—";
 
       outputs.serviceTable.innerHTML = "";
       outputs.retailTable.innerHTML = "";
 
       for (let i = 0; i < levels; i += 1) {
+        const isTopTier = i === levels - 1;
         const tierPosition = levels === 1 ? 0 : i / (levels - 1);
         const eased = Math.pow(tierPosition, curve);
-        const defaultSpec = defaultLevelSpec(i);
-        const levelHours = Math.max(0, levelSpecs[i]?.hours ?? defaultSpec.hours);
-        const levelHourly = Math.max(0, levelSpecs[i]?.hourly ?? defaultSpec.hourly);
-        const levelGuarantee = levelHours * levelHourly;
-        const weekly = levelGuarantee * conversion;
+        const weekly = isTopTier ? topWeekly : baseWeekly + eased * (topWeekly - baseWeekly);
         const quarterly = weekly * 13;
         const monthly = weekly * 4.3;
         const retailPercent = clamp(
@@ -439,6 +424,7 @@
           100
         );
         const retailWeekly = weekly * (retailPercent / 100);
+        const guaranteeValue = isTopTier ? topGuarantee : baseGuarantee;
 
         const serviceRow = document.createElement("tr");
         const levelCell = document.createElement("td");
@@ -446,33 +432,41 @@
         serviceRow.appendChild(levelCell);
 
         const hoursCell = document.createElement("td");
-        const hoursInput = document.createElement("input");
-        hoursInput.type = "number";
-        hoursInput.step = 0.5;
-        hoursInput.className = "level-input";
-        hoursInput.value = levelHours.toFixed(1);
-        hoursInput.addEventListener("input", () => {
-          setLevelSpec(i, "hours", parseFloat(hoursInput.value) || 0);
-          render();
-        });
-        hoursCell.appendChild(hoursInput);
+        if (i === 0) {
+          const hoursInput = document.createElement("input");
+          hoursInput.type = "number";
+          hoursInput.step = 0.5;
+          hoursInput.className = "level-input";
+          hoursInput.value = baseSpec.hours.toFixed(1);
+          hoursInput.addEventListener("input", () => {
+            baseSpec.hours = clampHours(parseFloat(hoursInput.value) || 0);
+            render();
+          });
+          hoursCell.appendChild(hoursInput);
+        } else {
+          hoursCell.textContent = isTopTier ? `${topHours.toFixed(1)}` : baseSpec.hours.toFixed(1);
+        }
         serviceRow.appendChild(hoursCell);
 
         const hourlyCell = document.createElement("td");
-        const hourlyInput = document.createElement("input");
-        hourlyInput.type = "number";
-        hourlyInput.step = 0.5;
-        hourlyInput.className = "level-input";
-        hourlyInput.value = levelHourly.toFixed(2);
-        hourlyInput.addEventListener("input", () => {
-          setLevelSpec(i, "hourly", parseFloat(hourlyInput.value) || 0);
-          render();
-        });
-        hourlyCell.appendChild(hourlyInput);
+        if (i === 0) {
+          const hourlyInput = document.createElement("input");
+          hourlyInput.type = "number";
+          hourlyInput.step = 0.25;
+          hourlyInput.className = "level-input";
+          hourlyInput.value = baseSpec.hourly.toFixed(2);
+          hourlyInput.addEventListener("input", () => {
+            baseSpec.hourly = Math.max(0, parseFloat(hourlyInput.value) || 0);
+            render();
+          });
+          hourlyCell.appendChild(hourlyInput);
+        } else {
+          hourlyCell.textContent = isTopTier ? "—" : baseSpec.hourly.toFixed(2);
+        }
         serviceRow.appendChild(hourlyCell);
 
         const guaranteeCell = document.createElement("td");
-        guaranteeCell.textContent = formatCurrency(levelGuarantee);
+        guaranteeCell.textContent = formatCurrency(guaranteeValue);
         serviceRow.appendChild(guaranteeCell);
 
         [formatCurrency(weekly), formatCurrency(quarterly), formatCurrency(monthly)].forEach((content) => {
@@ -521,5 +515,6 @@
 
     render();
   </script>
+
 </body>
 </html>

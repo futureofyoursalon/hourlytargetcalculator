@@ -240,53 +240,28 @@
     </header>
 
     <section class="panel">
-      <div class="tier-group">
-        <h2>First level (Level 1)</h2>
-        <div class="grid">
-          <div class="field">
-            <label for="hourlyWage">Minimum guaranteed hourly wage</label>
-            <input type="number" id="hourlyWage" min="0" step="0.01" value="35" />
-          </div>
-          <div class="field">
-            <label for="fullTimeHours">Base weekly hours (new stylists)</label>
-            <input type="number" id="fullTimeHours" min="1" step="0.5" value="35" />
-          </div>
-          <div class="field">
-            <label for="wageShare">Wage share of service revenue (%)</label>
-            <input type="number" id="wageShare" min="1" max="100" step="1" value="40" />
-          </div>
+      <div class="grid">
+        <div class="field">
+          <label for="wageShare">Wage share of service revenue (%)</label>
+          <input type="number" id="wageShare" min="1" max="100" step="1" value="40" />
         </div>
-      </div>
-      <div class="tier-group">
-        <h2>Top level (Level N)</h2>
-        <div class="grid">
-          <div class="field">
-            <label for="topHours">Top tier weekly hours</label>
-            <input type="number" id="topHours" min="1" step="0.5" value="35" />
-          </div>
-          <div class="field">
-            <label for="topGoal">Top tier take-home goal (annual)</label>
-            <input type="number" id="topGoal" min="0" step="1000" value="100000" />
-          </div>
-          <div class="field">
-            <label for="weeksPerYear">Weeks per year for annual goal <span class="info-icon" aria-label="Default to 50 for two weeks vacation" title="Default to 50 weeks to allow 2 weeks vacation">i</span></label>
-            <input type="number" id="weeksPerYear" min="1" max="52" step="1" value="50" />
-            <p class="input-note">50 weeks allows for two weeks of vacation; adjust if policies differ.</p>
-          </div>
+        <div class="field">
+          <label for="topGoal">Top tier take-home goal (annual)</label>
+          <input type="number" id="topGoal" min="0" step="1000" value="100000" />
         </div>
-      </div>
-      <div class="tier-group">
-        <h2>Tier progression</h2>
-        <div class="grid">
-          <div class="field">
-            <label for="levelCount">Number of stylist tiers</label>
-            <input type="number" id="levelCount" min="2" max="12" step="1" value="6" />
-          </div>
-          <div class="field">
-            <label for="curveExponent">Progression curve (1=linear, higher makes late tiers harder)</label>
-            <input type="range" id="curveExponent" min="0.4" max="3" step="0.05" value="1.25" />
-            <span class="range-value" id="curveValue">1.25</span>
-          </div>
+        <div class="field">
+          <label for="weeksPerYear">Weeks per year for annual goal <span class="info-icon" aria-label="Default to 50 for two weeks vacation" title="Default to 50 weeks to allow 2 weeks vacation">i</span></label>
+          <input type="number" id="weeksPerYear" min="1" max="52" step="1" value="50" />
+          <p class="input-note">50 weeks allows for two weeks of vacation; adjust if policies differ.</p>
+        </div>
+        <div class="field">
+          <label for="levelCount">Number of stylist tiers</label>
+          <input type="number" id="levelCount" min="2" max="12" step="1" value="6" />
+        </div>
+        <div class="field">
+          <label for="curveExponent">Progression curve (1=linear, higher makes late tiers harder)</label>
+          <input type="range" id="curveExponent" min="0.4" max="3" step="0.05" value="1.25" />
+          <span class="range-value" id="curveValue">1.25</span>
         </div>
       </div>
 
@@ -317,6 +292,7 @@
           <tr>
             <th>Level</th>
             <th>Hours</th>
+            <th>Hourly wage</th>
             <th>Minimum guarantee</th>
             <th>Weekly target</th>
             <th>Quarterly (×13)</th>
@@ -354,13 +330,10 @@
 
   <script>
     const inputs = {
-      hourly: document.getElementById("hourlyWage"),
-      hours: document.getElementById("fullTimeHours"),
       wageShare: document.getElementById("wageShare"),
       topGoal: document.getElementById("topGoal"),
       levels: document.getElementById("levelCount"),
       curve: document.getElementById("curveExponent"),
-      topHours: document.getElementById("topHours"),
       weeksPerYear: document.getElementById("weeksPerYear"),
     };
 
@@ -402,6 +375,13 @@
       });
     };
 
+    const defaultLevelSpec = (index) => {
+      return {
+        hours: 35,
+        hourly: 17 + index,
+      };
+    };
+
     const setLevelSpec = (index, key, value) => {
       if (!levelSpecs[index]) {
         levelSpecs[index] = {};
@@ -420,9 +400,6 @@
     const clamp = (value, min, max) => Math.min(Math.max(value, min), max);
 
     const render = () => {
-      const hourly = Math.max(0, parseFloat(inputs.hourly.value) || 0);
-      const baseHours = Math.max(0, parseFloat(inputs.hours.value) || 0);
-      const topHours = Math.max(0, parseFloat(inputs.topHours.value) || baseHours);
       const share = clamp(parseFloat(inputs.wageShare.value) || 40, 1, 100);
       const annualTop = Math.max(0, parseFloat(inputs.topGoal.value) || 0);
       const weeksPerYear = clamp(parseFloat(inputs.weeksPerYear.value) || 50, 1, 52);
@@ -434,11 +411,10 @@
       outputs.curveValue.textContent = curve.toFixed(2);
 
       const conversion = share > 0 ? 100 / share : 0;
-      const baseGuarantee = hourly * baseHours;
-      const topGuarantee = annualTop / weeksPerYear;
+      const levelOne = levelSpecs[0] ?? defaultLevelSpec(0);
+      const baseGuarantee = levelOne.hours * levelOne.hourly;
       const baseWeekly = baseGuarantee * conversion;
-      const topWeekly = topGuarantee * conversion;
-      const hoursRange = topHours - baseHours;
+      const topWeekly = (annualTop / weeksPerYear) * conversion;
 
       outputs.baseWeekly.textContent = baseWeekly ? formatCurrency(baseWeekly) : "—";
       outputs.topWeekly.textContent = topWeekly ? formatCurrency(topWeekly) : "—";
@@ -450,10 +426,10 @@
       for (let i = 0; i < levels; i += 1) {
         const tierPosition = levels === 1 ? 0 : i / (levels - 1);
         const eased = Math.pow(tierPosition, curve);
-        const defaultHours = levels === 1 ? baseHours : baseHours + tierPosition * hoursRange;
-        const defaultGuarantee = baseGuarantee + eased * (topGuarantee - baseGuarantee);
-        const hoursForLevel = Math.max(0, levelSpecs[i]?.hours ?? defaultHours);
-        const levelGuarantee = Math.max(0, levelSpecs[i]?.guarantee ?? defaultGuarantee);
+        const defaultSpec = defaultLevelSpec(i);
+        const levelHours = Math.max(0, levelSpecs[i]?.hours ?? defaultSpec.hours);
+        const levelHourly = Math.max(0, levelSpecs[i]?.hourly ?? defaultSpec.hourly);
+        const levelGuarantee = levelHours * levelHourly;
         const weekly = levelGuarantee * conversion;
         const quarterly = weekly * 13;
         const monthly = weekly * 4.3;
@@ -474,7 +450,7 @@
         hoursInput.type = "number";
         hoursInput.step = 0.5;
         hoursInput.className = "level-input";
-        hoursInput.value = hoursForLevel.toFixed(1);
+        hoursInput.value = levelHours.toFixed(1);
         hoursInput.addEventListener("input", () => {
           setLevelSpec(i, "hours", parseFloat(hoursInput.value) || 0);
           render();
@@ -482,24 +458,24 @@
         hoursCell.appendChild(hoursInput);
         serviceRow.appendChild(hoursCell);
 
-        const guaranteeCell = document.createElement("td");
-        const guaranteeInput = document.createElement("input");
-        guaranteeInput.type = "number";
-        guaranteeInput.step = 1;
-        guaranteeInput.className = "level-input";
-        guaranteeInput.value = levelGuarantee.toFixed(0);
-        guaranteeInput.addEventListener("input", () => {
-          setLevelSpec(i, "guarantee", parseFloat(guaranteeInput.value) || 0);
+        const hourlyCell = document.createElement("td");
+        const hourlyInput = document.createElement("input");
+        hourlyInput.type = "number";
+        hourlyInput.step = 0.5;
+        hourlyInput.className = "level-input";
+        hourlyInput.value = levelHourly.toFixed(2);
+        hourlyInput.addEventListener("input", () => {
+          setLevelSpec(i, "hourly", parseFloat(hourlyInput.value) || 0);
           render();
         });
-        guaranteeCell.appendChild(guaranteeInput);
+        hourlyCell.appendChild(hourlyInput);
+        serviceRow.appendChild(hourlyCell);
+
+        const guaranteeCell = document.createElement("td");
+        guaranteeCell.textContent = formatCurrency(levelGuarantee);
         serviceRow.appendChild(guaranteeCell);
 
-        [
-          formatCurrency(weekly),
-          formatCurrency(quarterly),
-          formatCurrency(monthly),
-        ].forEach((content) => {
+        [formatCurrency(weekly), formatCurrency(quarterly), formatCurrency(monthly)].forEach((content) => {
           const cell = document.createElement("td");
           cell.textContent = content;
           serviceRow.appendChild(cell);

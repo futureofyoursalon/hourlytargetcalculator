@@ -93,6 +93,15 @@
       background: #fff;
     }
 
+    .level-input {
+      width: 95px;
+      border-radius: 8px;
+      border: 1px solid #cfd5df;
+      padding: 0.35rem 0.55rem;
+      font-size: 0.95rem;
+      background: #fff;
+    }
+
     input:focus {
       outline: 2px solid #5b8ef4;
       border-color: transparent;
@@ -307,7 +316,8 @@
         <thead>
           <tr>
             <th>Level</th>
-            <th>Weekly hours</th>
+            <th>Hours</th>
+            <th>Minimum guarantee</th>
             <th>Weekly target</th>
             <th>Quarterly (×13)</th>
             <th>Monthly (×4.3)</th>
@@ -366,6 +376,7 @@
     const DEFAULT_RETAIL_BASE = 15;
     const DEFAULT_RETAIL_TOP = 20;
     const retailPercents = {};
+    const levelSpecs = {};
 
     const defaultRetailPercent = (index, levelCount) => {
       if (levelCount <= 1) {
@@ -381,6 +392,21 @@
           delete retailPercents[key];
         }
       });
+    };
+
+    const cleanLevelSpecs = (levelCount) => {
+      Object.keys(levelSpecs).forEach((key) => {
+        if (Number(key) >= levelCount) {
+          delete levelSpecs[key];
+        }
+      });
+    };
+
+    const setLevelSpec = (index, key, value) => {
+      if (!levelSpecs[index]) {
+        levelSpecs[index] = {};
+      }
+      levelSpecs[index][key] = value;
     };
 
     const formatCurrency = (value) => {
@@ -403,13 +429,15 @@
       const levels = Math.max(2, parseInt(inputs.levels.value, 10) || 2);
       const curve = clamp(parseFloat(inputs.curve.value) || 1.25, 0.4, 3);
       cleanRetailPercents(levels);
+      cleanLevelSpecs(levels);
 
       outputs.curveValue.textContent = curve.toFixed(2);
 
-      const wagePerWeek = hourly * baseHours;
       const conversion = share > 0 ? 100 / share : 0;
-      const baseWeekly = wagePerWeek * conversion;
-      const topWeekly = (annualTop / weeksPerYear) * conversion;
+      const baseGuarantee = hourly * baseHours;
+      const topGuarantee = annualTop / weeksPerYear;
+      const baseWeekly = baseGuarantee * conversion;
+      const topWeekly = topGuarantee * conversion;
       const hoursRange = topHours - baseHours;
 
       outputs.baseWeekly.textContent = baseWeekly ? formatCurrency(baseWeekly) : "—";
@@ -422,10 +450,13 @@
       for (let i = 0; i < levels; i += 1) {
         const tierPosition = levels === 1 ? 0 : i / (levels - 1);
         const eased = Math.pow(tierPosition, curve);
-        const weekly = baseWeekly + eased * (topWeekly - baseWeekly);
+        const defaultHours = levels === 1 ? baseHours : baseHours + tierPosition * hoursRange;
+        const defaultGuarantee = baseGuarantee + eased * (topGuarantee - baseGuarantee);
+        const hoursForLevel = Math.max(0, levelSpecs[i]?.hours ?? defaultHours);
+        const levelGuarantee = Math.max(0, levelSpecs[i]?.guarantee ?? defaultGuarantee);
+        const weekly = levelGuarantee * conversion;
         const quarterly = weekly * 13;
         const monthly = weekly * 4.3;
-        const hoursForLevel = levels === 1 ? baseHours : baseHours + tierPosition * hoursRange;
         const retailPercent = clamp(
           retailPercents[i] ?? defaultRetailPercent(i, levels),
           0,
@@ -434,9 +465,37 @@
         const retailWeekly = weekly * (retailPercent / 100);
 
         const serviceRow = document.createElement("tr");
+        const levelCell = document.createElement("td");
+        levelCell.textContent = `Level ${i + 1}`;
+        serviceRow.appendChild(levelCell);
+
+        const hoursCell = document.createElement("td");
+        const hoursInput = document.createElement("input");
+        hoursInput.type = "number";
+        hoursInput.step = 0.5;
+        hoursInput.className = "level-input";
+        hoursInput.value = hoursForLevel.toFixed(1);
+        hoursInput.addEventListener("input", () => {
+          setLevelSpec(i, "hours", parseFloat(hoursInput.value) || 0);
+          render();
+        });
+        hoursCell.appendChild(hoursInput);
+        serviceRow.appendChild(hoursCell);
+
+        const guaranteeCell = document.createElement("td");
+        const guaranteeInput = document.createElement("input");
+        guaranteeInput.type = "number";
+        guaranteeInput.step = 1;
+        guaranteeInput.className = "level-input";
+        guaranteeInput.value = levelGuarantee.toFixed(0);
+        guaranteeInput.addEventListener("input", () => {
+          setLevelSpec(i, "guarantee", parseFloat(guaranteeInput.value) || 0);
+          render();
+        });
+        guaranteeCell.appendChild(guaranteeInput);
+        serviceRow.appendChild(guaranteeCell);
+
         [
-          `Level ${i + 1}`,
-          `${hoursForLevel.toFixed(1)} h`,
           formatCurrency(weekly),
           formatCurrency(quarterly),
           formatCurrency(monthly),

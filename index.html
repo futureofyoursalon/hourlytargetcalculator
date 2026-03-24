@@ -1,0 +1,490 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Service Sales Target Builder</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    :root {
+      color-scheme: light;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: "Inter", "Segoe UI", system-ui, -apple-system, sans-serif;
+      background: #f4f6f8;
+      color: #061728;
+    }
+
+    main {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 2rem 1.5rem 3rem;
+    }
+
+    header {
+      margin-bottom: 1.5rem;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 2rem;
+      letter-spacing: -0.01em;
+    }
+
+    p.lede {
+      margin: 0.5rem 0 0;
+      color: #4c5a69;
+    }
+
+    .panel {
+      background: #ffffff;
+      border: 1px solid #e2e6ea;
+      border-radius: 16px;
+      padding: 1.5rem;
+      margin-bottom: 1.5rem;
+      box-shadow: 0 10px 28px rgba(15, 23, 44, 0.08);
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 1rem;
+    }
+
+    .tier-group h2 {
+      margin: 0 0 0.5rem;
+      font-size: 1.1rem;
+      color: #16232e;
+    }
+
+    .field {
+      display: flex;
+      flex-direction: column;
+    }
+
+    label {
+      font-size: 0.85rem;
+      font-weight: 600;
+      margin-bottom: 0.35rem;
+      color: #2b3a4b;
+    }
+
+    input,
+    select {
+      font-size: 1rem;
+      border-radius: 10px;
+      border: 1px solid #cfd5df;
+      padding: 0.6rem 0.85rem;
+      background: #fcfdff;
+    }
+
+    .retail-input {
+      width: 80px;
+      border-radius: 8px;
+      border: 1px solid #cfd5df;
+      padding: 0.35rem 0.5rem;
+      font-size: 0.95rem;
+      text-align: right;
+      background: #fff;
+    }
+
+    input:focus {
+      outline: 2px solid #5b8ef4;
+      border-color: transparent;
+      background: #fff;
+    }
+
+    .range-value {
+      font-size: 0.9rem;
+      color: #495467;
+      margin-top: 0.25rem;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 1rem;
+      font-size: 0.95rem;
+    }
+
+    th,
+    td {
+      text-align: left;
+      padding: 0.65rem 0.4rem;
+      border-bottom: 1px solid #e9edf1;
+    }
+
+    th {
+      font-size: 0.85rem;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: #4c5a69;
+    }
+
+    tbody tr:last-child td {
+      border-bottom: none;
+    }
+
+    .note {
+      font-size: 0.85rem;
+      color: #5b6677;
+      margin-top: 0.25rem;
+    }
+
+    .highlight {
+      background: #f1f6ff;
+      border-radius: 999px;
+      padding: 0.2rem 0.7rem;
+      font-weight: 600;
+      font-size: 0.8rem;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.25rem;
+    }
+
+    .summary {
+      display: flex;
+      gap: 1rem;
+      flex-wrap: wrap;
+      margin-top: 1rem;
+    }
+
+    .summary .stat {
+      flex: 1;
+      min-width: 190px;
+      padding: 0.85rem;
+      border-radius: 12px;
+      background: #f7f9fb;
+      border: 1px solid #e1e6ed;
+    }
+
+    .stat label {
+      margin-bottom: 0.25rem;
+    }
+
+    .stat p {
+      margin: 0;
+      font-size: 1.2rem;
+      font-weight: 600;
+    }
+
+    .input-note {
+      font-size: 0.85rem;
+      color: #5b6677;
+      margin-top: 0.35rem;
+      display: flex;
+      align-items: center;
+      gap: 0.3rem;
+    }
+
+    .info-icon {
+      width: 1.2rem;
+      height: 1.2rem;
+      border-radius: 50%;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.75rem;
+      background: #d3e5ff;
+      color: #1b4bfd;
+    }
+
+    table caption {
+      caption-side: top;
+      margin-bottom: 0.5rem;
+      font-weight: 600;
+      color: #2b3a4b;
+      font-size: 1rem;
+    }
+    .panel-heading {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      margin-bottom: 0.75rem;
+    }
+
+    .sr-only {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <h1>Hourly Wage Salon &amp; Barber Shop Target Builder</h1>
+      <p class="lede">Model weekly, quarterly, and monthly service and retail targets across stylist tiers.</p>
+    </header>
+
+    <section class="panel">
+      <div class="tier-group">
+        <h2>First level (Level 1)</h2>
+        <div class="grid">
+          <div class="field">
+            <label for="hourlyWage">Minimum guaranteed hourly wage</label>
+            <input type="number" id="hourlyWage" min="0" step="0.01" value="35" />
+          </div>
+          <div class="field">
+            <label for="fullTimeHours">Base weekly hours (new stylists)</label>
+            <input type="number" id="fullTimeHours" min="1" step="0.5" value="35" />
+          </div>
+          <div class="field">
+            <label for="wageShare">Wage share of service revenue (%)</label>
+            <input type="number" id="wageShare" min="1" max="100" step="1" value="40" />
+          </div>
+        </div>
+      </div>
+      <div class="tier-group">
+        <h2>Top level (Level N)</h2>
+        <div class="grid">
+          <div class="field">
+            <label for="topHours">Top tier weekly hours</label>
+            <input type="number" id="topHours" min="1" step="0.5" value="35" />
+          </div>
+          <div class="field">
+            <label for="topGoal">Top tier take-home goal (annual)</label>
+            <input type="number" id="topGoal" min="0" step="1000" value="100000" />
+          </div>
+          <div class="field">
+            <label for="weeksPerYear">Weeks per year for annual goal <span class="info-icon" aria-label="Default to 50 for two weeks vacation" title="Default to 50 weeks to allow 2 weeks vacation">i</span></label>
+            <input type="number" id="weeksPerYear" min="1" max="52" step="1" value="50" />
+            <p class="input-note">50 weeks allows for two weeks of vacation; adjust if policies differ.</p>
+          </div>
+        </div>
+      </div>
+      <div class="tier-group">
+        <h2>Tier progression</h2>
+        <div class="grid">
+          <div class="field">
+            <label for="levelCount">Number of stylist tiers</label>
+            <input type="number" id="levelCount" min="2" max="12" step="1" value="6" />
+          </div>
+          <div class="field">
+            <label for="curveExponent">Progression curve (1=linear, higher makes late tiers harder)</label>
+            <input type="range" id="curveExponent" min="0.4" max="3" step="0.05" value="1.25" />
+            <span class="range-value" id="curveValue">1.25</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="summary" aria-live="polite">
+        <div class="stat">
+          <label>Base weekly service target</label>
+          <p id="baseWeekly">—</p>
+        </div>
+        <div class="stat">
+          <label>Top weekly service target</label>
+          <p id="topWeekly">—</p>
+        </div>
+        <div class="stat">
+          <label>Gap to cover</label>
+          <p id="gapWeekly">—</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <div class="panel-heading">
+        <strong>Service Targets by Tier</strong>
+        <div class="note highlight">Monthly targets use 4.3 weeks per month on average</div>
+      </div>
+      <table id="serviceTable" aria-live="polite">
+        <caption class="sr-only">Service Targets by Tier</caption>
+        <thead>
+          <tr>
+            <th>Level</th>
+            <th>Weekly hours</th>
+            <th>Weekly target</th>
+            <th>Quarterly (×13)</th>
+            <th>Monthly (×4.3)</th>
+          </tr>
+        </thead>
+        <tbody>
+          <!-- rows inserted here -->
+        </tbody>
+      </table>
+    </section>
+
+    <section class="panel">
+      <div class="panel-heading">
+        <strong>Retail Targets (percent of service target)</strong>
+        <div class="note">Type a percentage for each tier and the table updates the weekly/quarterly/monthly retail goals.</div>
+      </div>
+      <table id="retailTable" aria-live="polite">
+        <caption class="sr-only">Retail Targets (percent of service target)</caption>
+        <thead>
+          <tr>
+            <th>Level</th>
+            <th>Retail %</th>
+            <th>Weekly</th>
+            <th>Quarterly</th>
+            <th>Monthly</th>
+          </tr>
+        </thead>
+        <tbody>
+          <!-- rows inserted here -->
+        </tbody>
+      </table>
+    </section>
+  </main>
+
+  <script>
+    const inputs = {
+      hourly: document.getElementById("hourlyWage"),
+      hours: document.getElementById("fullTimeHours"),
+      wageShare: document.getElementById("wageShare"),
+      topGoal: document.getElementById("topGoal"),
+      levels: document.getElementById("levelCount"),
+      curve: document.getElementById("curveExponent"),
+      topHours: document.getElementById("topHours"),
+      weeksPerYear: document.getElementById("weeksPerYear"),
+    };
+
+    const outputs = {
+      baseWeekly: document.getElementById("baseWeekly"),
+      topWeekly: document.getElementById("topWeekly"),
+      gapWeekly: document.getElementById("gapWeekly"),
+      serviceTable: document.querySelector("#serviceTable tbody"),
+      retailTable: document.querySelector("#retailTable tbody"),
+      curveValue: document.getElementById("curveValue"),
+    };
+
+    const DEFAULT_RETAIL_BASE = 15;
+    const DEFAULT_RETAIL_TOP = 20;
+    const retailPercents = {};
+
+    const defaultRetailPercent = (index, levelCount) => {
+      if (levelCount <= 1) {
+        return DEFAULT_RETAIL_BASE;
+      }
+      const fraction = index / (levelCount - 1);
+      return DEFAULT_RETAIL_BASE + fraction * (DEFAULT_RETAIL_TOP - DEFAULT_RETAIL_BASE);
+    };
+
+    const cleanRetailPercents = (levelCount) => {
+      Object.keys(retailPercents).forEach((key) => {
+        if (Number(key) >= levelCount) {
+          delete retailPercents[key];
+        }
+      });
+    };
+
+    const formatCurrency = (value) => {
+      return new Intl.NumberFormat("en-US", {
+        style: "currency",
+        currency: "USD",
+        maximumFractionDigits: 0,
+      }).format(value);
+    };
+
+    const clamp = (value, min, max) => Math.min(Math.max(value, min), max);
+
+    const render = () => {
+      const hourly = Math.max(0, parseFloat(inputs.hourly.value) || 0);
+      const baseHours = Math.max(0, parseFloat(inputs.hours.value) || 0);
+      const topHours = Math.max(0, parseFloat(inputs.topHours.value) || baseHours);
+      const share = clamp(parseFloat(inputs.wageShare.value) || 40, 1, 100);
+      const annualTop = Math.max(0, parseFloat(inputs.topGoal.value) || 0);
+      const weeksPerYear = clamp(parseFloat(inputs.weeksPerYear.value) || 50, 1, 52);
+      const levels = Math.max(2, parseInt(inputs.levels.value, 10) || 2);
+      const curve = clamp(parseFloat(inputs.curve.value) || 1.25, 0.4, 3);
+      cleanRetailPercents(levels);
+
+      outputs.curveValue.textContent = curve.toFixed(2);
+
+      const wagePerWeek = hourly * baseHours;
+      const conversion = share > 0 ? 100 / share : 0;
+      const baseWeekly = wagePerWeek * conversion;
+      const topWeekly = (annualTop / weeksPerYear) * conversion;
+      const hoursRange = topHours - baseHours;
+
+      outputs.baseWeekly.textContent = baseWeekly ? formatCurrency(baseWeekly) : "—";
+      outputs.topWeekly.textContent = topWeekly ? formatCurrency(topWeekly) : "—";
+      outputs.gapWeekly.textContent = topWeekly && baseWeekly ? formatCurrency(Math.max(0, topWeekly - baseWeekly)) : "—";
+
+      outputs.serviceTable.innerHTML = "";
+      outputs.retailTable.innerHTML = "";
+
+      for (let i = 0; i < levels; i += 1) {
+        const tierPosition = levels === 1 ? 0 : i / (levels - 1);
+        const eased = Math.pow(tierPosition, curve);
+        const weekly = baseWeekly + eased * (topWeekly - baseWeekly);
+        const quarterly = weekly * 13;
+        const monthly = weekly * 4.3;
+        const hoursForLevel = levels === 1 ? baseHours : baseHours + tierPosition * hoursRange;
+        const retailPercent = clamp(
+          retailPercents[i] ?? defaultRetailPercent(i, levels),
+          0,
+          100
+        );
+        const retailWeekly = weekly * (retailPercent / 100);
+
+        const serviceRow = document.createElement("tr");
+        [
+          `Level ${i + 1}`,
+          `${hoursForLevel.toFixed(1)} h`,
+          formatCurrency(weekly),
+          formatCurrency(quarterly),
+          formatCurrency(monthly),
+        ].forEach((content) => {
+          const cell = document.createElement("td");
+          cell.textContent = content;
+          serviceRow.appendChild(cell);
+        });
+
+        const retailRow = document.createElement("tr");
+        const percentInput = document.createElement("input");
+        percentInput.type = "number";
+        percentInput.min = 0;
+        percentInput.max = 100;
+        percentInput.step = 0.1;
+        percentInput.className = "retail-input";
+        percentInput.value = retailPercent.toFixed(1);
+        percentInput.addEventListener("input", () => {
+          retailPercents[i] = clamp(parseFloat(percentInput.value) || 0, 0, 100);
+          render();
+        });
+
+        [
+          `Level ${i + 1}`,
+          null,
+          formatCurrency(retailWeekly),
+          formatCurrency(retailWeekly * 13),
+          formatCurrency(retailWeekly * 4.3),
+        ].forEach((content, columnIndex) => {
+          const cell = document.createElement("td");
+          if (columnIndex === 1) {
+            cell.appendChild(percentInput);
+          } else {
+            cell.textContent = content;
+          }
+          retailRow.appendChild(cell);
+        });
+
+        outputs.serviceTable.appendChild(serviceRow);
+        outputs.retailTable.appendChild(retailRow);
+      }
+    };
+
+    Object.values(inputs).forEach((el) => {
+      el.addEventListener("input", render);
+    });
+
+    render();
+  </script>
+</body>
+</html>
